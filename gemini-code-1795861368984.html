@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PureCanvas - 極簡畫作產生器</title>
+<style>
+  * { box-sizing: border-box; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+  body { margin: 0; padding: 20px; background-color: #FFFFFF; color: #1E293B; }
+  
+  /* 頂部品牌 Logo 標頭區 */
+  .brand-header {
+    max-width: 980px; margin: 0 auto 20px auto; padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .logo-group { display: flex; align-items: center; gap: 12px; }
+  .logo-box {
+    width: 40px; height: 40px; background: #ECFEFF; border: 1.5px solid #06B6D4;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  }
+  .brand-title { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; color: #1E293B; }
+  .brand-title span { color: #06B6D4; }
+  .brand-tagline { font-size: 13px; color: #64748B; }
+
+  /* 主要工作台容器 */
+  .studio-container {
+    max-width: 980px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 24px;
+    background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 16px; padding: 24px;
+  }
+  .control-panel { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 18px; }
+  .preview-panel {
+    flex: 1.2; min-width: 300px; background: #FFFFFF; border: 1px solid #E2E8F0;
+    border-radius: 12px; padding: 16px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; min-height: 440px; position: relative;
+  }
+  label { font-weight: 600; font-size: 14px; color: #334155; display: block; margin-bottom: 8px; }
+  textarea {
+    width: 100%; height: 95px; padding: 12px; border: 1px solid #CBD5E1;
+    border-radius: 8px; resize: none; font-size: 14px; outline: none; background: #FFFFFF;
+  }
+  textarea:focus { border-color: #06B6D4; box-shadow: 0 0 0 3px rgba(6,182,212,0.15); }
+  .style-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .style-btn {
+    padding: 9px 10px; border: 1px solid #CBD5E1; background: #FFFFFF; border-radius: 8px;
+    cursor: pointer; font-size: 13px; text-align: center; transition: all 0.2s;
+  }
+  .style-btn:hover { border-color: #06B6D4; }
+  .style-btn.active { background: #ECFEFF; border-color: #06B6D4; color: #0891B2; font-weight: 600; }
+  .generate-btn {
+    background: #06B6D4; color: #FFFFFF; border: none; padding: 14px; border-radius: 8px;
+    font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 4px;
+  }
+  .generate-btn:hover { background: #0891B2; }
+  .generate-btn:disabled { background: #94A3B8; cursor: not-allowed; }
+  #result-img { max-width: 100%; max-height: 380px; border-radius: 8px; display: none; }
+  .placeholder-text { color: #94A3B8; font-size: 14px; text-align: center; line-height: 1.6; }
+  .loader {
+    display: none; width: 40px; height: 40px; border: 4px solid #CFFAFE;
+    border-top: 4px solid #06B6D4; border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .download-btn {
+    display: none; margin-top: 14px; padding: 9px 18px; background: #1E293B;
+    color: #FFFFFF; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500;
+  }
+  .download-btn:hover { background: #334155; }
+</style>
+</head>
+<body>
+
+<!-- 品牌 LOGO 標頭區 -->
+<header class="brand-header">
+  <div class="logo-group">
+    <div class="logo-box">
+      <!-- 極簡科技風 SVG Logo：純粹畫框與青色靈感星芒 -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="18" height="18" rx="4" stroke="#1E293B" stroke-width="2"/>
+        <path d="M12 7L13.3 10.7L17 12L13.3 13.3L12 17L10.7 13.3L7 12L10.7 10.7L12 7Z" fill="#06B6D4"/>
+      </svg>
+    </div>
+    <div class="brand-title">Pure<span>Canvas</span></div>
+  </div>
+  <div class="brand-tagline">想，即所見 ｜ 純粹畫布產生器</div>
+</header>
+
+<div class="studio-container">
+  <!-- 左側控制區 -->
+  <div class="control-panel">
+    <div>
+      <label>1. 描述你腦中的畫面（建議輸入英文效果更精準）</label>
+      <textarea id="prompt-input" placeholder="例如：A futuristic minimalist city with cyan glowing lights..."></textarea>
+    </div>
+
+    <div>
+      <label>2. 選擇畫作風格（共 8 種）</label>
+      <div class="style-grid" id="style-options">
+        <div class="style-btn active" data-style="minimalist watercolor art, clean background">極簡水彩</div>
+        <div class="style-btn" data-style="wild abstract expressionism painting, bold brushstrokes, vibrant dynamic colors, energetic splash">抽象狂野風</div>
+        <div class="style-btn" data-style="impressionist oil painting, textured canvas">印象派油畫</div>
+        <div class="style-btn" data-style="cyberpunk sci-fi concept art, cyan and neon lighting">科技未來風</div>
+        <div class="style-btn" data-style="clean modern anime illustration, studio quality">日系插畫</div>
+        <div class="style-btn" data-style="bauhaus minimalist geometric vector art, clean lines">極簡幾何風</div>
+        <div class="style-btn" data-style="3D isometric blender render, soft studio lighting, sleek design">3D 立體渲染</div>
+        <div class="style-btn" data-style="fine charcoal and pencil sketch on textured paper, artistic shading">藝術素描手繪</div>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="gen-btn" onclick="generateArt()">開始生成畫作</button>
+  </div>
+
+  <!-- 右側畫布預覽區 -->
+  <div class="preview-panel">
+    <div class="placeholder-text" id="placeholder">輸入想法並選擇風格<br>無須動手，靈感瞬間成畫</div>
+    <div class="loader" id="loader"></div>
+    <img id="result-img" alt="Generated Art" />
+    <a id="download-link" class="download-btn" target="_blank" download="PureCanvas_Art.jpg">開啟 / 下載原圖</a>
+  </div>
+</div>
+
+<script>
+  let selectedStyle = "minimalist watercolor art, clean background";
+
+  document.querySelectorAll('.style-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedStyle = btn.getAttribute('data-style');
+    });
+  });
+
+  function generateArt() {
+    const promptText = document.getElementById('prompt-input').value.trim();
+    if (!promptText) {
+      alert("請先輸入你想畫的內容喔！");
+      return;
+    }
+
+    const btn = document.getElementById('gen-btn');
+    const placeholder = document.getElementById('placeholder');
+    const loader = document.getElementById('loader');
+    const img = document.getElementById('result-img');
+    const dlLink = document.getElementById('download-link');
+
+    btn.disabled = true;
+    btn.innerText = "AI 繪製中...";
+    placeholder.style.display = "none";
+    img.style.display = "none";
+    dlLink.style.display = "none";
+    loader.style.display = "block";
+
+    const fullPrompt = encodeURIComponent(`${promptText}, ${selectedStyle}, high quality, masterpiece`);
+    const randomSeed = Math.floor(Math.random() * 100000);
+    const imageUrl = `https://image.pollinations.ai/prompt/${fullPrompt}?width=800&height=800&seed=${randomSeed}&nologo=true`;
+
+    img.onload = function() {
+      loader.style.display = "none";
+      img.style.display = "block";
+      dlLink.href = imageUrl;
+      dlLink.style.display = "inline-block";
+      btn.disabled = false;
+      btn.innerText = "再次生成畫作";
+    };
+
+    img.onerror = function() {
+      loader.style.display = "none";
+      placeholder.inner
